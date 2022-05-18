@@ -1,0 +1,54 @@
+# This Makefile is the output of a template Makefile that was
+# processed by the m4 macro preprocessor. It is not intended
+# to be human readable.
+
+CC = gcc
+CCLD = gcc
+LIBS = libdiscord.a
+PREFIX = /usr/local
+
+CFLAGS = -std=c99 -O0 -g -pthread -D_XOPEN_SOURCE=600					 \
+		 -Iinclude -Icog-utils -Icore -Icore/third-party				  \
+		 -Igencodecs -I$(PREFIX)/include -DLOG_USE_COLOR				  \
+		 -Wall -Wextra -Wshadow -Wdouble-promotion -Wconversion -Wpedantic
+
+COGUTILS_OBJS = syscmd(`find cog-utils -type f -name "*.c" | tr "\n" " " | sed "s/\.c/.o/g" | sed "s://:/:g"')
+CORE_OBJS = syscmd(`find core -type f -name "*.c" | tr "\n" " " | sed "s/\.c/.o/g" | sed "s://:/:g"')
+THIRDP_OBJS = syscmd(`find core/third-party -type f -name "*.c" | tr "\n" " " | sed "s/\.c/.o/g" | sed "s://:/:g"')
+DISCORD_OBJS = syscmd(`find src -type f -name "*.c" | tr "\n" " " | sed "s/\.c/.o/g" | sed "s://:/:g"')
+GENCODECS_OBJ = gencodecs/discord_codecs.o
+
+OBJS = $(COGUTILS_OBJS) $(CORE_OBJS) $(THIRDP_OBJS) $(DISCORD_OBJS) \
+	   $(GENCODECS_OBJ)
+
+all: $(LIBS)
+
+$(LIBS): $(SUBDIRS) $(OBJS)
+	ar cqsv libdiscord.a $(OBJS)
+
+.c.o:
+	$(CC) -c $< $(CFLAGS) -o $@
+
+
+# This takes pressure off of make.
+
+$(SUBDIRS):
+	make -C gencodecs
+	make -C cog-utils
+
+.PHONY: clean install docs
+
+clean:
+	rm -f $(OBJS) $(LIBS)
+
+install:
+	@mkdir -p $(PREFIX)/lib/
+	@mkdir -p $(PREFIX)/include/concord
+	install -d $(PREFIX)/lib/
+	install -m 644 $(LIB) $(PREFIX)/lib/
+	install -d $(PREFIX)/include/concord/
+	install -m 644 $(INCLUDE_DIR)/*.h $(COGUTILS_DIR)/*.h $(CORE_DIR)/*.h  \
+		$(THIRDP_DIR)/*.h $(GENCODECS_DIR)/*.h $(PREFIX)/include/concord/
+
+docs:
+	@ $(MAKE) -C $(GENCODECS_DIR) docs
